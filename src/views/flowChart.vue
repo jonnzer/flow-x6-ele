@@ -10,6 +10,14 @@
         <el-button @click="updateNode1"> updateNode1 </el-button>
       </div>
     </div>
+    <div class="dnd-wrap">
+      <div data-type="rect" class="dnd-rect" @mousedown="startDrag">
+        Rect
+      </div>
+      <div data-type="circle" class="dnd-circle" @mousedown="startDrag">
+        Circle
+      </div>
+    </div>
     <div id="container" class="content-area-wrapper">
     </div>
 
@@ -18,10 +26,12 @@
 </template>
 <script>
 import { Graph, Shape, ObjectExt } from '@antv/x6'
+import { Dnd } from "@antv/x6-plugin-dnd";
 export default {
   data() {
     return {
-      graph: null
+      graph: null,
+      dnd: null
     }
   },
   methods: {
@@ -167,6 +177,11 @@ export default {
      
       this.graph.fromJSON(data) // render draw
       this.graph.centerContent()
+      this.dnd = new Dnd({
+        target: this.graph,
+        scaled: false,
+        dndContainer: document.querySelector('.dnd-wrap'),
+      });
     },
     addZoom() {
       // 偏移歪了
@@ -185,6 +200,30 @@ export default {
       console.debug(this.graph.getNodes())
       const node = this.graph.getCellById('node1')
       node.attr('label/text', 'hello update')
+    },
+    startDrag (e) {
+      const type = e.currentTarget.dataset.type
+      const node =
+        type === 'rect'
+          ?  this.graph.createNode({
+            shape: "rect",
+            width: 100,
+            height: 40,
+          })
+          : this.graph.createNode({
+              width: 60,
+              height: 60,
+              shape: 'circle',
+              label: 'Circle',
+              attrs: {
+                body: {
+                  stroke: '#8f8f8f',
+                  strokeWidth: 1,
+                  fill: '#fff',
+                },
+              },
+            })
+        this.dnd.start(node, e)
     },
     addRect () {
       const rect = this.graph.addNode({
@@ -287,6 +326,37 @@ export default {
   }
 
   .edit-wrapper {}
+  .dnd-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 200px;
+    padding: 16px;
+    border: 1px solid #f0f0f0;
+    user-select: none;
+
+    .dnd-rect {
+      width: 100px;
+      height: 40px;
+      margin: 16px;
+      line-height: 40px;
+      text-align: center;
+      border: 1px solid #8f8f8f;
+      border-radius: 6px;
+      cursor: move;
+    }
+
+    .dnd-circle {
+      width: 60px;
+      height: 60px;
+      margin: 16px;
+      line-height: 60px;
+      text-align: center;
+      border: 1px solid #8f8f8f;
+      border-radius: 100%;
+      cursor: move;
+    }
+  }
 }
 </style>
   
