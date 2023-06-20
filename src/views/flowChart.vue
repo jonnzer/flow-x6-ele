@@ -6,6 +6,7 @@
         <el-button @click="reduceZoom"> - </el-button>
         <el-button @click="restoreZoom"> reset </el-button>
         <el-button @click="save"> save </el-button>
+        <el-button @click="addVueNode"> addVueNode </el-button>
         <el-button @click="addRect"> addRect </el-button>
         <el-button @click="updateNode1"> updateNode1 </el-button>
       </div>
@@ -26,7 +27,17 @@
 </template>
 <script>
 import { Graph, Shape, ObjectExt } from '@antv/x6'
-import { Dnd } from "@antv/x6-plugin-dnd";
+import { Dnd } from "@antv/x6-plugin-dnd"; // 拖拽
+import { Snapline } from "@antv/x6-plugin-snapline"; // 对齐线
+import { register } from "@antv/x6-vue-shape"; // vue组件作为节点
+
+import CustomNode from '@/components/custom.vue'
+register({
+    shape: "custom-vue-node",
+    width: 100,
+    height: 100,
+    component: CustomNode,
+  });
 export default {
   data() {
     return {
@@ -154,6 +165,7 @@ export default {
 
       this.graph = new Graph({
         container: document.getElementById('container'),
+        interacting: true, // 交互 是否允许
         width: 800,
         height: 600,
         grid: {
@@ -171,17 +183,54 @@ export default {
             },
           ],
         },
-        panning: true, // 是否启用画布平移
+        panning: false, // 是否启用画布平移
         mousewheel: true
       });
      
       this.graph.fromJSON(data) // render draw
-      this.graph.centerContent()
+      this.graph.centerContent() // 居中显示画布
+      this.graph.use(
+        new Snapline({
+          enabled: true,
+        })
+      )
       this.dnd = new Dnd({
         target: this.graph,
         scaled: false,
         dndContainer: document.querySelector('.dnd-wrap'),
       });
+      this.graph.on('cell:mouseenter', ({ cell }) => {
+      if (cell.isNode()) {
+        cell.addTools([
+          {
+            name: 'boundary',
+            args: {
+              attrs: {
+                fill: '#7c68fc',
+                stroke: '#333',
+                'stroke-width': 1,
+                'fill-opacity': 0.2,
+              },
+            },
+          },
+          {
+            name: 'button-remove',
+            args: {
+              x: 0,
+              y: 0,
+              offset: { x: 5, y: 5 },
+            },
+          },
+        ])
+      } else {
+        cell.addTools(['vertices', 'segments'])
+      }
+    })
+
+      this.graph.on('cell:mouseleave', ({ cell }) => {
+        cell.removeTools()
+      })
+    
     },
     addZoom() {
       // 偏移歪了
@@ -241,6 +290,14 @@ export default {
           port: 'port1', // 链接桩 ID
         },
       })
+    },
+    addVueNode () {
+      this.graph.addNode({
+        shape: "custom-vue-node",
+        x: 100,
+        y: 100,
+        label: 'text'
+      });
     },
     initShapeConfig() {
       // https://x6.antv.antgroup.com/tutorial/basic/node#:~:text=%7D-,%E5%AE%9A%E5%88%B6%E8%8A%82%E7%82%B9,-%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E9%80%9A%E8%BF%87
